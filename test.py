@@ -12,7 +12,7 @@ class testMod(loader.Module):
     """
 
     strings = {
-        "name": "RichDemo",
+        "name": "test",
     }
 
     async def _rich(self, message, text, reply_markup=None, **kwargs):

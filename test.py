@@ -2,8 +2,8 @@
 from .. import loader
 
 
-@loader.module("RichDemo")
-class RichDemoMod(loader.Module):
+@loader.module("test")
+class testMod(loader.Module):
     """Тестовый модуль: все теги и стили Rich HTML (справочник)
 
     Команды демонстрируют каждую категорю Rich HTML:

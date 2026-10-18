@@ -26,7 +26,7 @@ def verify_sig(secret: str, payload: str, sig: str) -> bool:
     return hmac.compare_digest(expected, sig)
 
 
-@loader.module(name="serichik", author="SHMods", version=1.2)
+@loader.module(name="serichik", author="SHMods", version=1.3)
 class Serichik(loader.Module):
     """Огонёк / серия дней с синхронизацией и эффектами"""
 
@@ -58,7 +58,7 @@ class Serichik(loader.Module):
             "Прошло больше одного дня без сообщений."
         ),
         "help": (
-            "🔥 <b>Серичик v1.2</b>\n\n"
+            "🔥 <b>Серичик v1.3</b>\n\n"
             "<b>Основные:</b>\n"
             "• <code>.серичик</code> — пригласить (кнопка)\n"
             "• <code>.серии</code> — список серий\n"
@@ -104,12 +104,11 @@ class Serichik(loader.Module):
         return 200
 
     async def _safe_answer(self, message: types.Message, text: str, **kwargs):
-        """Безопасный ответ — сначала пробуем utils.answer, потом reply"""
         try:
             return await utils.answer(message, text, **kwargs)
         except Exception:
             try:
-                return await message.reply(text, **kwargs)
+                return await message.reply(text)
             except Exception:
                 return None
 
@@ -240,7 +239,7 @@ class Serichik(loader.Module):
 
     @loader.command(alias="serichik")
     async def серичик(self, app: Client, message: types.Message):
-        """Пригласить человека в серию (отправляет кнопку принятия)"""
+        """Пригласить человека в серию (кнопка доступна всем)"""
         if message.chat.type != enums.ChatType.PRIVATE:
             return await self._safe_answer(message, self.strings("only_private"))
 
@@ -248,10 +247,15 @@ class Serichik(loader.Module):
         series = self._series()
 
         if peer_id in series and series[peer_id].get("active"):
-            return await self._safe_answer(message, "Серия уже активна. Используй .серичик_pair для синхронизации.")
+            return await self._safe_answer(
+                message,
+                "Серия уже активна. Используй .серичик_pair для синхронизации."
+            )
 
-        # Клавиатура в формате, который понимает Shizu
-        markup = [[{"text": "🔥 Принять серию", "callback": f"serichik_accept:{peer_id}"}]]
+        # Формат кнопки, который Shizu принимает + доступна всем
+        markup = [
+            [{"text": "🔥 Принять серию", "_callback": f"serichik_accept:{peer_id}"}]
+        ]
 
         await self._safe_answer(
             message,
@@ -260,7 +264,7 @@ class Serichik(loader.Module):
         )
 
     async def serichik_accept_callback_handler(self, call: types.CallbackQuery):
-        """Обработка кнопки «Принять серию»"""
+        """Обработка кнопки «Принять серию» (доступна всем)"""
         if not call.data or not call.data.startswith("serichik_accept:"):
             return
 
@@ -285,7 +289,11 @@ class Serichik(loader.Module):
         }
         self._save_series(series)
 
-        await call.answer("Серия начата!", show_alert=True)
+        try:
+            await call.answer("Серия начата!", show_alert=True)
+        except Exception:
+            pass
+
         try:
             await call.message.edit_text("🔥 <b>Серия начата!</b>")
         except Exception:

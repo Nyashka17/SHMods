@@ -10,8 +10,8 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from .. import loader, utils
 
 
-FIRE_EFFECT_ID = 5104841245755180586          # 🔥
-BROKEN_HEART_EFFECT_ID = 5123265598893064880  # 💔
+FIRE_EFFECT_ID = 5104841245755180586
+BROKEN_HEART_EFFECT_ID = 5123265598893064880
 
 
 def today() -> date:
@@ -110,7 +110,6 @@ class Serichik(loader.Module):
         return 200
 
     async def _send_with_effect(self, app: Client, chat_id: int, text: str, effect_id: int = None):
-        """Пытается отправить сообщение с эффектом"""
         try:
             kwargs = {
                 "chat_id": chat_id,
@@ -194,10 +193,7 @@ class Serichik(loader.Module):
         self._save_series(series)
 
         await self._send_with_effect(
-            app,
-            message.chat.id,
-            self.strings("join_success"),
-            FIRE_EFFECT_ID,
+            app, message.chat.id, self.strings("join_success"), FIRE_EFFECT_ID
         )
 
         try:
@@ -242,10 +238,7 @@ class Serichik(loader.Module):
             return await utils.answer(message, self.strings("not_paired"))
 
         ok = await self._send_sync(app, peer_id)
-        await utils.answer(
-            message,
-            self.strings("sync_sent") if ok else "Не удалось отправить."
-        )
+        await utils.answer(message, self.strings("sync_sent") if ok else "Не удалось отправить.")
 
     @loader.command(alias="serichik")
     async def серичик(self, app: Client, message: types.Message):
@@ -257,10 +250,7 @@ class Serichik(loader.Module):
         series = self._series()
 
         if peer_id in series and series[peer_id].get("active"):
-            return await utils.answer(
-                message,
-                "Серия уже активна. Используй .серичик_pair для синхронизации."
-            )
+            return await utils.answer(message, "Серия уже активна. Используй .серичик_pair для синхронизации.")
 
         kb = InlineKeyboardMarkup(
             [[InlineKeyboardButton("🔥 Принять серию", callback_data=f"serichik_accept:{peer_id}")]]
@@ -272,12 +262,14 @@ class Serichik(loader.Module):
             reply_markup=kb,
         )
 
-    async def serichik_accept_callback_handler(self, app: Client, call: types.CallbackQuery):
-        if not call.data.startswith("serichik_accept:"):
+    async def serichik_accept_callback_handler(self, call: types.CallbackQuery):
+        """Обработка кнопки «Принять серию»"""
+        if not call.data or not call.data.startswith("serichik_accept:"):
             return
 
         peer_id = call.data.split(":")[1]
         series = self._series()
+        app = self.app
 
         try:
             chat = await app.get_chat(int(peer_id))
@@ -334,10 +326,7 @@ class Serichik(loader.Module):
                 )
             )
 
-        await utils.answer(
-            message,
-            self.strings("status").format(list="\n".join(lines))
-        )
+        await utils.answer(message, self.strings("status").format(list="\n".join(lines)))
 
     @loader.command(alias="leave")
     async def покинуть(self, app: Client, message: types.Message):
@@ -360,10 +349,7 @@ class Serichik(loader.Module):
         self._save_pairs(pairs)
 
         await self._send_with_effect(
-            app,
-            message.chat.id,
-            self.strings("left").format(name=name),
-            BROKEN_HEART_EFFECT_ID,
+            app, message.chat.id, self.strings("left").format(name=name), BROKEN_HEART_EFFECT_ID
         )
 
     @loader.watcher()
@@ -374,7 +360,6 @@ class Serichik(loader.Module):
         text = message.text or message.caption or ""
         peer_id = str(message.chat.id)
 
-        # Обработка sync-пакетов
         if text.startswith("🔥SERI:"):
             pairs = self._pairs()
             if peer_id not in pairs:
@@ -390,11 +375,7 @@ class Serichik(loader.Module):
                         kv = dict(x.split("=") for x in data_part.split("|"))
                         series = self._series()
                         if peer_id not in series:
-                            series[peer_id] = {
-                                "name": peer_id,
-                                "active": True,
-                                "paired": True,
-                            }
+                            series[peer_id] = {"name": peer_id, "active": True, "paired": True}
 
                         series[peer_id].update({
                             "days": int(kv.get("days", 1)),
@@ -408,7 +389,6 @@ class Serichik(loader.Module):
                 pass
             return
 
-        # Обычная активность (только входящие)
         if message.from_user and message.from_user.is_self:
             return
 

@@ -263,9 +263,12 @@ class Serichik(loader.Module):
                 "Серия уже активна. Используй .серичик_pair для синхронизации."
             )
 
-        # Формат кнопки, который Shizu принимает + доступна всем
+        # Shizu: фиксированный callback_data через поле `data` —
+        # пресс доходит до callback_handlers модуля (serichik_accept_callback_handler).
+        # Ключ `callback` со строкой нельзя: он регистрируется в _custom_map без
+        # _callback и падает с KeyError: '_callback'.
         markup = [
-            [{"text": "🔥 Принять серию", "callback": f"serichik_accept:{peer_id}"}]
+            [{"text": "🔥 Принять серию", "data": f"serichik_accept:{peer_id}"}]
         ]
 
         await self._safe_answer(
@@ -463,4 +466,4 @@ class Serichik(loader.Module):
     async def серичикhelp(self, app: Client, message: types.Message):
         """Показать справку по модулю Серичик"""
         await self._safe_answer(message, self.strings("help"))
-            
+        

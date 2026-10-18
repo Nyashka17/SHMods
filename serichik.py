@@ -5,7 +5,6 @@ from datetime import datetime, date
 from typing import Dict, Any, Optional
 
 from pyrogram import Client, types, enums
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from .. import loader, utils
 
@@ -32,39 +31,34 @@ class Serichik(loader.Module):
     """Огонёк / серия дней с синхронизацией и эффектами"""
 
     strings = {
-        "only_private": "<emoji id=5807626765874499116>🚫</emoji> <b>Только в личных чатах.</b>",
-        "already_paired": "<emoji id=6334541265077536138>❔</emoji> <b>Уже спарены с этим человеком.</b>",
+        "only_private": "🚫 <b>Только в личных чатах.</b>",
+        "already_paired": "❔ <b>Уже спарены с этим человеком.</b>",
         "pair_created": (
-            "<emoji id=5104841245755180586>🔥</emoji> <b>Код для синхронизации создан</b>\n\n"
+            "🔥 <b>Код для синхронизации создан</b>\n\n"
             "Отправь другу этот код:\n<code>{code}</code>\n\n"
             "Он должен написать:\n<code>.серичик_join {code}</code>"
         ),
-        "join_success": (
-            "<emoji id=5104841245755180586>🔥</emoji> <b>Успешно спарены!</b>\n"
-            "Теперь серии будут синхронизироваться автоматически."
-        ),
-        "join_invalid": "<emoji id=5807626765874499116>🚫</emoji> <b>Неверный или устаревший код.</b>",
-        "not_paired": "<emoji id=6334541265077536138>❔</emoji> <b>Сначала нужно спариться (.серичик_pair).</b>",
-        "sync_sent": "<emoji id=5104841245755180586>🔥</emoji> <b>Состояние отправлено другу.</b>",
-        "status": (
-            "<emoji id=5104841245755180586>🔥</emoji> <b>Твои серии:</b>\n\n{list}"
-        ),
+        "join_success": "🔥 <b>Успешно спарены!</b>\nТеперь серии будут синхронизироваться автоматически.",
+        "join_invalid": "🚫 <b>Неверный или устаревший код.</b>",
+        "not_paired": "❔ <b>Сначала нужно спариться (.серичик_pair).</b>",
+        "sync_sent": "🔥 <b>Состояние отправлено другу.</b>",
+        "status": "🔥 <b>Твои серии:</b>\n\n{list}",
         "series_item": (
             "• <b>{name}</b> — <code>{days}</code> дн. | кредиты: <code>{credits}</code>\n"
             "  Последняя: {last} | paired: {paired}"
         ),
-        "left": "<emoji id=6334551070487873258>✂️</emoji> <b>Вышел из серии с {name}.</b>",
-        "no_series": "<emoji id=6334541265077536138>❔</emoji> <b>Нет активных серий.</b>",
+        "left": "✂️ <b>Вышел из серии с {name}.</b>",
+        "no_series": "❔ <b>Нет активных серий.</b>",
         "streak_up": (
-            "<emoji id=5104841245755180586>🔥</emoji> <b>Серия с {name} продолжается!</b>\n"
+            "🔥 <b>Серия с {name} продолжается!</b>\n"
             "День <b>{days}</b> • +{points} кредитов • Всего: <code>{credits}</code>"
         ),
         "streak_broken": (
-            "<emoji id=5123265598893064880>💔</emoji> <b>Серия с {name} сгорела...</b>\n"
+            "💔 <b>Серия с {name} сгорела...</b>\n"
             "Прошло больше одного дня без сообщений."
         ),
         "help": (
-            "<emoji id=5104841245755180586>🔥</emoji> <b>Серичик v1.2</b>\n\n"
+            "🔥 <b>Серичик v1.2</b>\n\n"
             "<b>Основные:</b>\n"
             "• <code>.серичик</code> — пригласить (кнопка)\n"
             "• <code>.серии</code> — список серий\n"
@@ -109,13 +103,19 @@ class Serichik(loader.Module):
             return 100
         return 200
 
+    async def _safe_answer(self, message: types.Message, text: str, **kwargs):
+        """Безопасный ответ — сначала пробуем utils.answer, потом reply"""
+        try:
+            return await utils.answer(message, text, **kwargs)
+        except Exception:
+            try:
+                return await message.reply(text, **kwargs)
+            except Exception:
+                return None
+
     async def _send_with_effect(self, app: Client, chat_id: int, text: str, effect_id: int = None):
         try:
-            kwargs = {
-                "chat_id": chat_id,
-                "text": text,
-                "disable_notification": False,
-            }
+            kwargs = {"chat_id": chat_id, "text": text}
             if effect_id:
                 try:
                     return await app.send_message(**kwargs, message_effect_id=effect_id)
@@ -135,11 +135,11 @@ class Serichik(loader.Module):
     async def серичик_pair(self, app: Client, message: types.Message):
         """Создать одноразовый код для синхронизации серий с другом"""
         if message.chat.type != enums.ChatType.PRIVATE:
-            return await utils.answer(message, self.strings("only_private"))
+            return await self._safe_answer(message, self.strings("only_private"))
 
         peer_id = str(message.chat.id)
         if peer_id in self._pairs():
-            return await utils.answer(message, self.strings("already_paired"))
+            return await self._safe_answer(message, self.strings("already_paired"))
 
         random_part = secrets.token_hex(4)
         code = f"{self.tg_id}:{random_part}"
@@ -153,21 +153,21 @@ class Serichik(loader.Module):
         }
         self.db.set("serichik", "pending_codes", pending)
 
-        await utils.answer(message, self.strings("pair_created").format(code=code))
+        await self._safe_answer(message, self.strings("pair_created").format(code=code))
 
     @loader.command(alias="serichik_join")
     async def серичик_join(self, app: Client, message: types.Message):
         """Принять код синхронизации. Использование: .серичик_join ID:XXXX"""
         args = utils.get_args_raw(message)
         if not args or ":" not in args:
-            return await utils.answer(message, "Использование: <code>.серичик_join ID:XXXX</code>")
+            return await self._safe_answer(message, "Использование: <code>.серичик_join ID:XXXX</code>")
 
         code = args.strip()
         try:
             creator_id, secret = code.split(":", 1)
             creator_id = int(creator_id)
         except Exception:
-            return await utils.answer(message, self.strings("join_invalid"))
+            return await self._safe_answer(message, self.strings("join_invalid"))
 
         peer_id = str(message.chat.id)
         pairs = self._pairs()
@@ -192,9 +192,7 @@ class Serichik(loader.Module):
         }
         self._save_series(series)
 
-        await self._send_with_effect(
-            app, message.chat.id, self.strings("join_success"), FIRE_EFFECT_ID
-        )
+        await self._send_with_effect(app, message.chat.id, self.strings("join_success"), FIRE_EFFECT_ID)
 
         try:
             await app.send_message(creator_id, f"🔥SERI:PAIR_OK|{self.tg_id}|{secret}")
@@ -231,35 +229,34 @@ class Serichik(loader.Module):
     async def серичик_sync(self, app: Client, message: types.Message):
         """Принудительно отправить текущее состояние серии другу"""
         if message.chat.type != enums.ChatType.PRIVATE:
-            return await utils.answer(message, self.strings("only_private"))
+            return await self._safe_answer(message, self.strings("only_private"))
 
         peer_id = str(message.chat.id)
         if peer_id not in self._pairs():
-            return await utils.answer(message, self.strings("not_paired"))
+            return await self._safe_answer(message, self.strings("not_paired"))
 
         ok = await self._send_sync(app, peer_id)
-        await utils.answer(message, self.strings("sync_sent") if ok else "Не удалось отправить.")
+        await self._safe_answer(message, self.strings("sync_sent") if ok else "Не удалось отправить.")
 
     @loader.command(alias="serichik")
     async def серичик(self, app: Client, message: types.Message):
         """Пригласить человека в серию (отправляет кнопку принятия)"""
         if message.chat.type != enums.ChatType.PRIVATE:
-            return await utils.answer(message, self.strings("only_private"))
+            return await self._safe_answer(message, self.strings("only_private"))
 
         peer_id = str(message.chat.id)
         series = self._series()
 
         if peer_id in series and series[peer_id].get("active"):
-            return await utils.answer(message, "Серия уже активна. Используй .серичик_pair для синхронизации.")
+            return await self._safe_answer(message, "Серия уже активна. Используй .серичик_pair для синхронизации.")
 
-        kb = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("🔥 Принять серию", callback_data=f"serichik_accept:{peer_id}")]]
-        )
+        # Клавиатура в формате, который понимает Shizu
+        markup = [[{"text": "🔥 Принять серию", "callback": f"serichik_accept:{peer_id}"}]]
 
-        await utils.answer(
+        await self._safe_answer(
             message,
-            "<emoji id=5104841245755180586>🔥</emoji> <b>Приглашение в серию</b>\nНажми кнопку, чтобы начать.",
-            reply_markup=kb,
+            "🔥 <b>Приглашение в серию</b>\nНажми кнопку, чтобы начать.",
+            reply_markup=markup,
         )
 
     async def serichik_accept_callback_handler(self, call: types.CallbackQuery):
@@ -290,16 +287,14 @@ class Serichik(loader.Module):
 
         await call.answer("Серия начата!", show_alert=True)
         try:
-            await call.message.edit_text(
-                "<emoji id=5104841245755180586>🔥</emoji> <b>Серия начата!</b>"
-            )
+            await call.message.edit_text("🔥 <b>Серия начата!</b>")
         except Exception:
             pass
 
         await self._send_with_effect(
             app,
             int(peer_id),
-            f"<emoji id=5104841245755180586>🔥</emoji> Серия с тобой начата!",
+            "🔥 Серия с тобой начата!",
             FIRE_EFFECT_ID,
         )
 
@@ -310,7 +305,7 @@ class Serichik(loader.Module):
         active = {k: v for k, v in series.items() if v.get("active", True)}
 
         if not active:
-            return await utils.answer(message, self.strings("no_series"))
+            return await self._safe_answer(message, self.strings("no_series"))
 
         lines = []
         pairs = self._pairs()
@@ -326,19 +321,19 @@ class Serichik(loader.Module):
                 )
             )
 
-        await utils.answer(message, self.strings("status").format(list="\n".join(lines)))
+        await self._safe_answer(message, self.strings("status").format(list="\n".join(lines)))
 
     @loader.command(alias="leave")
     async def покинуть(self, app: Client, message: types.Message):
         """Выйти из текущей серии с собеседником"""
         if message.chat.type != enums.ChatType.PRIVATE:
-            return await utils.answer(message, "Только в личке.")
+            return await self._safe_answer(message, "Только в личке.")
 
         peer_id = str(message.chat.id)
         series = self._series()
 
         if peer_id not in series:
-            return await utils.answer(message, self.strings("no_series"))
+            return await self._safe_answer(message, self.strings("no_series"))
 
         name = series[peer_id].get("name", peer_id)
         series[peer_id]["active"] = False
@@ -447,4 +442,4 @@ class Serichik(loader.Module):
     @loader.command()
     async def серичикhelp(self, app: Client, message: types.Message):
         """Показать справку по модулю Серичик"""
-        await utils.answer(message, self.strings("help"))
+        await self._safe_answer(message, self.strings("help"))

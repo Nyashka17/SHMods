@@ -134,6 +134,7 @@ class Serichik(loader.Module):
 
     @loader.command(alias="serichik_pair")
     async def серичик_pair(self, app: Client, message: types.Message):
+        """Создать одноразовый код для синхронизации серий с другом"""
         if message.chat.type != enums.ChatType.PRIVATE:
             return await utils.answer(message, self.strings("only_private"))
 
@@ -157,6 +158,7 @@ class Serichik(loader.Module):
 
     @loader.command(alias="serichik_join")
     async def серичик_join(self, app: Client, message: types.Message):
+        """Принять код синхронизации. Использование: .серичик_join ID:XXXX"""
         args = utils.get_args_raw(message)
         if not args or ":" not in args:
             return await utils.answer(message, "Использование: <code>.серичик_join ID:XXXX</code>")
@@ -231,6 +233,7 @@ class Serichik(loader.Module):
 
     @loader.command(alias="serichik_sync")
     async def серичик_sync(self, app: Client, message: types.Message):
+        """Принудительно отправить текущее состояние серии другу"""
         if message.chat.type != enums.ChatType.PRIVATE:
             return await utils.answer(message, self.strings("only_private"))
 
@@ -246,6 +249,7 @@ class Serichik(loader.Module):
 
     @loader.command(alias="serichik")
     async def серичик(self, app: Client, message: types.Message):
+        """Пригласить человека в серию (отправляет кнопку принятия)"""
         if message.chat.type != enums.ChatType.PRIVATE:
             return await utils.answer(message, self.strings("only_private"))
 
@@ -309,6 +313,7 @@ class Serichik(loader.Module):
 
     @loader.command(alias="series")
     async def серии(self, app: Client, message: types.Message):
+        """Показать список всех активных серий"""
         series = self._series()
         active = {k: v for k, v in series.items() if v.get("active", True)}
 
@@ -336,6 +341,7 @@ class Serichik(loader.Module):
 
     @loader.command(alias="leave")
     async def покинуть(self, app: Client, message: types.Message):
+        """Выйти из текущей серии с собеседником"""
         if message.chat.type != enums.ChatType.PRIVATE:
             return await utils.answer(message, "Только в личке.")
 
@@ -460,4 +466,5 @@ class Serichik(loader.Module):
 
     @loader.command()
     async def серичикhelp(self, app: Client, message: types.Message):
+        """Показать справку по модулю Серичик"""
         await utils.answer(message, self.strings("help"))

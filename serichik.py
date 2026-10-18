@@ -26,7 +26,7 @@ def verify_sig(secret: str, payload: str, sig: str) -> bool:
     return hmac.compare_digest(expected, sig)
 
 
-@loader.module(name="serichik", author="SHMods", version=1.3)
+@loader.module(name="serichik", author="SHMods", version=1.4)
 class Serichik(loader.Module):
     """Огонёк / серия дней с синхронизацией и эффектами"""
 
@@ -58,7 +58,7 @@ class Serichik(loader.Module):
             "Прошло больше одного дня без сообщений."
         ),
         "help": (
-            "🔥 <b>Серичик v1.3</b>\n\n"
+            "🔥 <b>Серичик v1.4</b>\n\n"
             "<b>Основные:</b>\n"
             "• <code>.серичик</code> — пригласить (кнопка)\n"
             "• <code>.серии</code> — список серий\n"
@@ -67,6 +67,8 @@ class Serichik(loader.Module):
             "• <code>.серичик_pair</code> — создать одноразовый код\n"
             "• <code>.серичик_join КОД</code> — принять код\n"
             "• <code>.серичик_sync</code> — принудительно синхронизировать\n\n"
+            "<b>Конфиг:</b>\n"
+            "• <code>disable_security</code> — если включить, твои собственные сообщения тоже продлевают серию\n\n"
             "🔥 — огонёк при продлении серии\n"
             "💔 — когда серия сгорает"
         ),
@@ -79,6 +81,15 @@ class Serichik(loader.Module):
             self.db.set("serichik", "pairs", {})
         if not self.db.get("serichik", "pending_codes"):
             self.db.set("serichik", "pending_codes", {})
+
+        self.config = loader.ModuleConfig(
+            loader.ConfigValue(
+                "disable_security",
+                False,
+                "Отключить проверку is_self: твои собственные сообщения тоже продлевают серию",
+                validator=loader.validators.Boolean(),
+            ),
+        )
 
     def _series(self) -> Dict[str, Any]:
         return self.db.get("serichik", "series", {})
@@ -254,7 +265,7 @@ class Serichik(loader.Module):
 
         # Формат кнопки, который Shizu принимает + доступна всем
         markup = [
-            [{"text": "🔥 Принять серию", "_callback": f"serichik_accept:{peer_id}"}]
+            [{"text": "🔥 Принять серию", "callback": f"serichik_accept:{peer_id}"}]
         ]
 
         await self._safe_answer(
@@ -393,7 +404,8 @@ class Serichik(loader.Module):
             return
 
         if message.from_user and message.from_user.is_self:
-            return
+            if not self.config.get("disable_security", False):
+                return
 
         series = self._series()
         if peer_id not in series or not series[peer_id].get("active"):
@@ -451,3 +463,4 @@ class Serichik(loader.Module):
     async def серичикhelp(self, app: Client, message: types.Message):
         """Показать справку по модулю Серичик"""
         await self._safe_answer(message, self.strings("help"))
+            

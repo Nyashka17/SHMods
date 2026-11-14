@@ -27,10 +27,9 @@ class GuildMod(loader.Module):
     """Автоматизация действий в гильдиях"""
     
     strings = {
-        "name": "Guild"
-        },
+        "name": "Guild",
+    }
     
-    strings_ru = {
-        }
+    strings_ru = {}
     
     

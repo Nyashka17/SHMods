@@ -1,2 +1,2 @@
-# ShizuMods
-Модули для юзер бота Shizu
+# HerokuMods
+Модули для юзербота Heroku

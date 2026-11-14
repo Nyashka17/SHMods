@@ -1,8 +1,19 @@
+#  ▄▄▄▄▄▄▄ ▄▄▄   ▄▄▄    ▄▄▄      ▄▄▄   ▄▄▄▄▄   ▄▄▄▄▄▄    ▄▄▄▄▄▄▄
+# █████▀▀▀ ███   ███    ████▄  ▄████ ▄███████▄ ███▀▀██▄ █████▀▀▀
+#  ▀████▄  █████████    ███▀████▀███ ███   ███ ███  ███  ▀████▄
+#    ▀████ ███▀▀▀███    ███  ▀▀  ███ ███▄▄▄███ ███  ███    ▀████
+# ███████▀ ███   ███ ██ ███      ███  ▀█████▀  ██████▀  ███████▀
+
+# 🔒 Licensed under the GNU GPLv3
+# 🌐 https://www.gnu.org/licenses/agpl-3.0.html
+# 👤 https://t.me/SH_Mods
+
+# banner: https://github.com/Nyashka17/SHMods/blob/master/assets/SH.MODS.jpg?raw=true
 # meta developer: @SH_Mods
+
 from .. import loader
 
-
-@loader.module("test")
+@loader.module("test_h")
 class testMod(loader.Module):
     """Тестовый модуль: все теги и стили Rich HTML (справочник)
 
@@ -12,7 +23,7 @@ class testMod(loader.Module):
     """
 
     strings = {
-        "name": "test",
+        "name": "test_h",
     }
 
     async def _rich(self, message, text, reply_markup=None, **kwargs):

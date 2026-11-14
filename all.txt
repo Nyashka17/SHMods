@@ -1,3 +1,2 @@
-test
-SH_INFO
-serichik
+test_h
+
